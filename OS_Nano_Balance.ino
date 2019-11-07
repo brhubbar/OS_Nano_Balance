@@ -15,30 +15,31 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// External Libraries.
+/* External Libraries */
 // Load cell amplifier.
 #include "src\HX711\src\HX711.h"
 // Hard Memory read/write.
 #include <EEPROM.h>
 
 
-// Globals
-// HX711 Pins.
-// Data Pin
+/* Globals */
+// HX711
+// Data Pin.
 const int hx_dt 	= 2;
-// Clock Pin
+// Clock Pin.
 const int hx_sck = 3;
-// Vcc Pin
+// Vcc Pin - HX711 requires 3-5V @ 1.5 mA, Nano supplies 5V @ 20 mA.
 const int hx_vcc = 4;
 
-// HX711 Constants.
-// Number of averages while measuring.
+// Number of averages while measuring. *Set to 1 because the library's averaging
+// is too slow and interferes with other interactions.
 const int hx_num_avgs = 1;
 // Number of averages while calibrating.
 const int hx_cal_num_avgs = 10;
 
 // HX711 object.
 HX711 loadcell;
+
 
 // Calibration (EEPROM).
 // Signature to store in the memory when calibrating.
@@ -58,11 +59,13 @@ String units = "kg";
 // Sensitivity value.
 float sensitivity;
 
-// Button pins.
+
+// Input pins.
 // Calibrate.
 const int btn_cal = 7;
 // Tare.
 const int btn_tare = 8;
+
 
 // Readouts.
 // Raw value.
@@ -71,19 +74,22 @@ double val;
 float mass;
 
 
-// initLoadCell() - set up the HX711 for use. Turns on the device, then verifies
-// the calibration value.
+/* Methods */
+/* initLoadCell() 
+ * Set up the HX711 for use. Turns on the device, then verifies the calibration 
+ * value.
+ */
 HX711 initLoadCell() {
 	Serial.println("Initializing HX711...");
 	
-	// Setup HX711 Power supply.
+	// Turn on the HX711 power supply.
 	pinMode(hx_vcc, OUTPUT);
 	digitalWrite(hx_vcc, HIGH);
 	
 	// Give it time to power on.
 	delay(500);
 	
-	// Initialize.
+	// Initialize the HX711.
 	HX711 loadcell;
 	loadcell.begin(hx_dt, hx_sck);
 	
@@ -92,7 +98,7 @@ HX711 initLoadCell() {
 	int num_retries = 3;
 	int wait_delay = 200;
 	while (!is_ready) {
-		// Give some indication that there is thought occurring.
+		// Give some indication that it's thinking.
 		Serial.print("...");
 		is_ready = loadcell.wait_ready_retry(num_retries, wait_delay);
 	}
@@ -104,21 +110,26 @@ HX711 initLoadCell() {
 	Serial.println("Loading calibration...");
 	EEPROM.get(cal_sig_addr, cal_check);
 	if (cal_check == cal_sig) {
+		// Get the saved calibration value.
 		EEPROM.get(cal_val_addr, cal_val);
 		Serial.print("Calibration value: ");
 		Serial.print(cal_val);
-		Serial.print(" ");
-		Serial.print(units);
-		Serial.println("/div");
+		Serial.print(" div/");
+		Serial.println(units);
+		
+		// Apply the calibration value to the driver.
 		loadcell.set_scale(cal_val);
 	} else {
+		// There is not a stored calibration value.
 		Serial.println("Calibration value is not stored.");
 		Serial.println("Defaulting to calibration of 1 (raw value)");
 		loadcell.set_scale(1.00f);
 	}
 
+	// Give the HX711 a chance to finish initializing.
 	delay(500);
 	
+	// Tare the thing.
 	Serial.println("Tare...");
 	loadcell.tare(hx_num_avgs);
 	
@@ -134,8 +145,9 @@ void calibrate() {
 	// Give the user a second to release the button.
 	delay(1000);
 		
+	// Recall that the buttons are active LOW.
+	// Start reading, wait until a button press indicates calibration is done.
 	while (digitalRead(btn_cal) == 1) {
-		// Start reading, wait until calibration is done.
 		if (digitalRead(btn_tare) == 0) {
 			// TODO: Make a custom tare function to keep this DRY.
 			Serial.println("Tare...");
@@ -144,27 +156,32 @@ void calibrate() {
 		
 		// Read the tared value (raw reading).
 		val = loadcell.get_value(hx_cal_num_avgs);
-		Serial.print("Reading: ");
-		Serial.println(val);
+		Serial.print("Raw Value: ");
+		Serial.print(val);
 		
 		// Calculate the sensitivity.
 		sensitivity = (float) (val / standard_mass);
 			
-		// Let the user know what they just set it to.
-		Serial.print("New sensitivity: ");
+		// Let the user know what they can now set it to.
+		Serial.print(", new sensitivity: ");
 		Serial.print(sensitivity);
-		Serial.print(" ");
-		Serial.println(units);
-	}
-	// Set and store the sensitivity.
+		Serial.print(" div/");
+		Serial.print(units);
+	}	// Button pressed.
+	
+	// Set the sensitivity.
 	// TODO: Make a print_with_units function.
 	Serial.print("Using sensitivity: ");
 	Serial.print(sensitivity);
-	Serial.print(" ");
+	Serial.print(" div/");
 	Serial.println(units);
 	loadcell.set_scale(sensitivity);
+	
+	// Store the sensitivity to hard memory.
 	EEPROM.put(cal_sig_addr, cal_sig);
 	EEPROM.put(cal_val_addr, sensitivity);
+	
+	// Give the user a chance to release the button.
 	delay(500);
 	return;
 }
@@ -174,7 +191,7 @@ void setup() {
 	Serial.begin(115200);
 	while(!Serial){
 		// Wait for serial to initialize.
-	}
+	}	// Serial initialized.
 	
 	::loadcell = initLoadCell();
 	
@@ -187,12 +204,15 @@ void setup() {
 
 
 void loop() {
-	// TODO: make my own running average algorithm.
+	/* TODO: make a custom running average algorithm - using the built in averages
+	 * introduces too much delay and making detection of button presses difficult.
+	 */
 	// See what's being measured without the calibration (but with tare offset).
 	val = loadcell.get_value(hx_num_avgs);
 	// Calibrated measurement.
 	mass = loadcell.get_units(hx_num_avgs);
 	
+	// Report the measurements.
 	Serial.print("Raw value: ");
 	Serial.print(val);
 	Serial.print(", Mass: ");
@@ -200,11 +220,13 @@ void loop() {
 	Serial.print(" ");
 	Serial.println(units);
 	
+	// Watch for a tare request.
 	if (digitalRead(btn_tare) == 0) {
 		Serial.println("Tare...");
 		loadcell.tare(hx_num_avgs);
 	}
-	
+		
+	// Watch for a calibration request.
 	if (digitalRead(btn_cal) == 0) {
 		Serial.println("Calibrate...");
 		calibrate();
