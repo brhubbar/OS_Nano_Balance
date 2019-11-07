@@ -72,6 +72,8 @@ const int btn_tare = 8;
 double val;
 // Scaled value.
 float mass;
+// Number of digits after the decimal.
+int num_digits = 6;
 
 
 /* Methods */
@@ -164,7 +166,7 @@ void calibrate() {
 			
 		// Let the user know what they can now set it to.
 		Serial.print(", new sensitivity: ");
-		Serial.print(sensitivity);
+		Serial.print(sensitivity, num_digits);
 		Serial.print(" div/");
 		Serial.print(units);
 	}	// Button pressed.
@@ -172,7 +174,7 @@ void calibrate() {
 	// Set the sensitivity.
 	// TODO: Make a print_with_units function.
 	Serial.print("Using sensitivity: ");
-	Serial.print(sensitivity);
+	Serial.print(sensitivity, num_digits);
 	Serial.print(" div/");
 	Serial.println(units);
 	loadcell.set_scale(sensitivity);
@@ -216,7 +218,7 @@ void loop() {
 	Serial.print("Raw value: ");
 	Serial.print(val);
 	Serial.print(", Mass: ");
-	Serial.print(mass);
+	Serial.print(mass, num_digits);
 	Serial.print(" ");
 	Serial.println(units);
 	
