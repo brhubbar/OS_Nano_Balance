@@ -2,11 +2,11 @@
 Firmware and design files for an open source digital balance with 3D printable components.
 ([Project Page](https://www.appropedia.org/3-D_Printable_Digital_Balance))
 
-# Printable Parts
+## Printable Parts
 The bed, cover, and base utilize other supporting .scad files. These can all be
 printed for a total of $2. 
 
-# Wiring
+## Wiring
 Wiring has not yet been cleanly drawn up. 
 Pin locations can be determined by looking at the .ino source code.
 
@@ -29,15 +29,15 @@ HX711 only requires 1.5 mA.
 * GND --> Cal  --> D7
 * GND --> Tare --> D8
 
-# Firmware
+## Firmware
 The firmware sends a readout to the Serial Monitor for interaction.
 Arduino's Serial Plotter can be used to get a live readout of changing mass on
 the balance.
 
-## Tare
+### Tare
 To tare, simply hit the tare button (on pin 8). This will zero the output.
 
-## Calibrate
+### Calibrate
 To calibrate, hit the calibrate button (on pin 7). 
 This will send the scale into its calibrate state.
 You may tare the scale while in calibration state.
