@@ -20,26 +20,44 @@
 #include "src\HX711\src\HX711.h"
 // Hard Memory read/write.
 #include <EEPROM.h>
-
+// LCD Controller.
+#include "src\LiquidCrystal\src\LiquidCrystal.h"
 
 /* Globals */
 // HX711
-// Data Pin.
-const int hx_dt 	= 2;
-// Clock Pin.
+// Data pin.
+const int hx_dt  = 2;
+// Clock pin.
 const int hx_sck = 3;
-// Vcc Pin - HX711 requires 3-5V @ 1.5 mA, Nano supplies 5V @ 20 mA.
+// Vcc pin - HX711 requires 3-5V @ 1.5 mA, Nano supplies 5V @ 20 mA.
 const int hx_vcc = 4;
-
 // Number of averages while measuring. *Set to 1 because the library's averaging
 // is too slow and interferes with other interactions.
 const int hx_num_avgs = 1;
 // Number of averages while calibrating.
 const int hx_cal_num_avgs = 10;
-
 // HX711 object.
 HX711 loadcell;
 
+// LCD
+// Is there an LCD?
+bool isLCD = true;
+// Reset pin.
+const int lcd_rs = A0;
+// Enable pin.
+const int lcd_en = A1;
+// Data pins.
+const int lcd_d4 = A2;
+const int lcd_d5 = A3;
+const int lcd_d6 = A4;
+const int lcd_d7 = A5;
+// Display size.
+const int lcd_rows = 2;
+const int lcd_cols = 16;
+// Power supply. allaboutcircuits.com suggests an LCD requires 5V @ 3mA.
+const int lcd_vcc = 12;
+// LCD object.
+LiquidCrystal lcd;
 
 // Calibration (EEPROM).
 // Signature to store in the memory when calibrating.
@@ -139,7 +157,7 @@ HX711 initLoadCell() {
 }
 
 
-// Calibrate() calibrates the load cell.
+// calibrate() calibrates the load cell.
 // loadcell = load cell amplifier object.
 // standard_mass = mass used to calibrate.
 // units = units to display in the readout. 
@@ -189,6 +207,48 @@ void calibrate() {
 }
 
 
+/* initDisplay()
+ * Prepare the LCD for use. Turns on the display and preps initial settings.
+ */
+LiquidCrystal initLCD() {
+	Serial.println("Initializing LCD...");
+	
+	// Turn on the LCD power supply.
+	pinMode(lcd_vcc, OUTPUT);
+	digitalWrite(lcd_vcc, HIGH);
+	
+	// Give it time to power on.
+	delay(500);
+	
+	// Initialize the display.
+	LiquidCrystal lcd(lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7);
+	lcd.begin(lcd_cols, lcd_rows);
+	// Clear the display.
+	lcd.clear();
+	// Home the cursor.
+	lcd.home();
+	// Hide the cursor.
+	lcd.noCursor();
+	// Ensure the display is on. (lcd.noDisplay() turns off the display).
+	lcd.display();
+	
+	// Test the display.
+	Serial.println("Testing the display...");
+	// Print an 8 to each character in the display.
+	for (int i = 0; i < lcd_rows * lcd_cols; i++) {
+		lcd.print("8");
+		delay(50);
+	}
+	delay(1000);
+	lcd.clear;
+	lcd.home;
+	
+	Serial.println("LCD initialized!");
+	
+	return lcd;
+}
+
+
 void setup() {
 	Serial.begin(115200);
 	while(!Serial){
@@ -196,6 +256,9 @@ void setup() {
 	}	// Serial initialized.
 	
 	::loadcell = initLoadCell();
+	if (isLCD) {
+		::lcd = initLCD();
+	}
 	
 	/* Tare and Calibarion sensors. Internal pullup resistor defaults the pin to 
 	 * HIGH, meaning the tare must be connected to ground when closed/active.
@@ -221,6 +284,11 @@ void loop() {
 	Serial.print(mass, num_digits);
 	Serial.print(" ");
 	Serial.println(units);
+	lcd.clear();
+	lcd.home();
+	lcd.print(mass, num_digits);
+	lcd.print(" ");
+	lcd.print(units);
 	
 	// Watch for a tare request.
 	if (digitalRead(btn_tare) == 0) {
