@@ -55,9 +55,9 @@ const int lcd_d7 = A5;
 const int lcd_rows = 2;
 const int lcd_cols = 16;
 // Power supply. allaboutcircuits.com suggests an LCD requires 5V @ 3mA.
-const int lcd_vcc = 12;
+const int lcd_vcc = 5;
 // LCD object.
-LiquidCrystal lcd;
+LiquidCrystal lcd(lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7);
 
 // Calibration (EEPROM).
 // Signature to store in the memory when calibrating.
@@ -221,7 +221,6 @@ LiquidCrystal initLCD() {
 	delay(500);
 	
 	// Initialize the display.
-	LiquidCrystal lcd(lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7);
 	lcd.begin(lcd_cols, lcd_rows);
 	// Clear the display.
 	lcd.clear();
@@ -240,8 +239,8 @@ LiquidCrystal initLCD() {
 		delay(50);
 	}
 	delay(1000);
-	lcd.clear;
-	lcd.home;
+	lcd.clear();
+	//lcd.home();
 	
 	Serial.println("LCD initialized!");
 	
@@ -257,7 +256,7 @@ void setup() {
 	
 	::loadcell = initLoadCell();
 	if (isLCD) {
-		::lcd = initLCD();
+		initLCD();
 	}
 	
 	/* Tare and Calibarion sensors. Internal pullup resistor defaults the pin to 
