@@ -1,0 +1,35 @@
+Main Body			Arduino Nano
+shell	2		usb_width	10
+lenX	110		usb_height	6
+lenY	140		usb_upto	16
+lenZ	25		width	18
+front_fillet_radius	3
+base_fillet_radius	45
+
+Screen
+height	40
+border	7
+cutout_width	72
+cutout_height	25
+angle	30
+tab_spacing	7
+plate_center	115
+tab_height	3
+tab_width	10
+
+M4 Screw
+head_diam	9
+head_height	4.4
+thru_diam	5
+M5 Screw
+head_diam	10
+head_height	5.4
+thru_diam	6.25
+
+TAL220
+hole_spacing	15
+standoff_height	10
+to_center	62.5	Measured from first M5 to between the 2 m4s
+
+TAL221
+hole_spacing	6
